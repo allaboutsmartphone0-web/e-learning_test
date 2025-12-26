@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Course • LifeSkills LMS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="assets/css/app.css" rel="stylesheet"/>
+</head>
+<body>
+  <div id="appNavbar"></div>
+
+  <main class="container py-4">
+    <div id="toastRoot"></div>
+
+    <div class="row g-3">
+      <div class="col-lg-8">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h3 class="fw-bold mb-1" id="title">Course</h3>
+            <div class="small-muted mb-3" id="meta">—</div>
+            <p id="desc" class="mb-0">—</p>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mt-3">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <h5 class="fw-semibold mb-0">Lesson Progress (demo)</h5>
+              <span class="badge text-bg-light border">Use your enroll_id + lesson_id</span>
+            </div>
+
+            <div class="row g-2 mt-2">
+              <div class="col-md-4">
+                <input class="form-control" id="enroll_id" placeholder="enroll_id (e.g., 1)">
+              </div>
+              <div class="col-md-4">
+                <input class="form-control" id="lesson_id" placeholder="lesson_id (e.g., 3)">
+              </div>
+              <div class="col-md-4">
+                <button class="btn btn-success w-100" id="btnComplete">Mark Completed</button>
+              </div>
+            </div>
+
+            <div class="small-muted mt-2">
+              Backend sample: <code>POST /api/progress/complete</code> :contentReference[oaicite:11]{index=11}
+            </div>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mt-3">
+          <div class="card-body">
+            <h5 class="fw-semibold">Quiz Submit (demo)</h5>
+            <div class="row g-2">
+              <div class="col-md-4">
+                <input class="form-control" id="quiz_enroll_id" placeholder="enroll_id">
+              </div>
+              <div class="col-md-4">
+                <input class="form-control" id="quiz_id" placeholder="quiz_id">
+              </div>
+              <div class="col-md-4">
+                <button class="btn btn-primary w-100" id="btnQuiz">Submit Quiz</button>
+              </div>
+              <div class="col-12">
+                <textarea class="form-control" id="answers" rows="2" placeholder='answers JSON array e.g. ["A","C","B"]'></textarea>
+                <div class="small-muted mt-1">Backend sample: <code>POST /api/quiz/submit</code> :contentReference[oaicite:12]{index=12}</div>
+              </div>
+            </div>
+            <div class="mt-2 fw-semibold" id="quizResult"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h5 class="fw-semibold">Actions</h5>
+            <div class="vstack gap-2">
+              <a class="btn btn-outline-primary" href="courses.html">Back to catalog</a>
+              <a class="btn btn-outline-secondary" href="dashboard.html">Go to dashboard</a>
+              <div class="small-muted mt-2">
+                If you add <code>POST /api/enroll</code>, we can wire a real “Enroll” button here.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3" id="coursesLoading"></div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { mountNavbar, toast } from "./assets/js/ui.js";
+    import { apiFetch } from "./assets/js/api.js";
+    import { requireAuth } from "./assets/js/auth.js";
+
+    mountNavbar("courses");
+
+    const params = new URLSearchParams(location.search);
+    const id = params.get("id");
+    if (!id) {
+      toast("Missing course id.", "danger");
+    } else {
+      // We only have GET /api/courses for published courses list in sample backend.
+      // So we fetch list then find one.
+      const list = await apiFetch("/courses");
+      const c = list.find(x => String(x.course_id) === String(id));
+      if (!c) toast("Course not found (maybe not published).", "warning");
+      else {
+        document.getElementById("title").textContent = c.title;
+        document.getElementById("meta").textContent = `${c.category_name || "Category"} • ${c.difficulty || "N/A"} • By ${c.instructor || "Instructor"}`;
+        document.getElementById("desc").textContent = c.description || "No description.";
+      }
+    }
+
+    // progress complete
+    document.getElementById("btnComplete").addEventListener("click", async () => {
+      requireAuth();
+      try {
+        const enroll_id = Number(document.getElementById("enroll_id").value);
+        const lesson_id = Number(document.getElementById("lesson_id").value);
+        await apiFetch("/progress/complete", { method: "POST", auth: true, body: { enroll_id, lesson_id } });
+        toast("Lesson marked completed.", "success");
+      } catch (e) {
+        toast(e.message, "danger");
+      }
+    });
+
+    // quiz submit
+    document.getElementById("btnQuiz").addEventListener("click", async () => {
+      requireAuth();
+      try {
+        const enroll_id = Number(document.getElementById("quiz_enroll_id").value);
+        const quiz_id = Number(document.getElementById("quiz_id").value);
+        const answers = JSON.parse(document.getElementById("answers").value || "[]");
+        const res = await apiFetch("/quiz/submit", { method: "POST", auth: true, body: { enroll_id, quiz_id, answers } });
+        document.getElementById("quizResult").textContent = `Score: ${res.score}`;
+        toast("Quiz submitted.", "success");
+      } catch (e) {
+        toast(e.message, "danger");
+      }
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

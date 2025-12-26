@@ -1,0 +1,8 @@
+body { background: #f7f8fb; }
+.card { border-radius: 16px; }
+.btn, .form-control, .form-select { border-radius: 12px; }
+.hero {
+  background: linear-gradient(135deg, rgba(13,110,253,.10), rgba(25,135,84,.10));
+  border: 1px solid rgba(0,0,0,.06);
+}
+.small-muted { font-size: .92rem; color: #6c757d; }
